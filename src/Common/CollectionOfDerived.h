@@ -106,12 +106,32 @@ public:
     }
 
     template <class T>
+    bool has() const
+    {
+        static_assert(std::is_base_of_v<ItemBase, T>, "Template parameter must inherit items base class");
+        auto it = getImpl(std::type_index(typeid(T)));
+        return it != records.cend();
+    }
+
+    template <class T>
     std::shared_ptr<T> get() const
     {
         static_assert(std::is_base_of_v<ItemBase, T>, "Template parameter must inherit items base class");
         auto it = getImpl(std::type_index(typeid(T)));
         if (it == records.cend())
             return nullptr;
+        auto cast = std::dynamic_pointer_cast<T>(it->ptr);
+        chassert(cast);
+        return cast;
+    }
+
+    template <class T>
+    std::shared_ptr<T> getSafe() const
+    {
+        static_assert(std::is_base_of_v<ItemBase, T>, "Template parameter must inherit items base class");
+        auto it = getImpl(std::type_index(typeid(T)));
+        if (it == records.cend())
+            throw Exception(ErrorCodes::LOGICAL_ERROR, "Item of type {} is not found in collection", typeid(T).name());
         auto cast = std::dynamic_pointer_cast<T>(it->ptr);
         chassert(cast);
         return cast;

@@ -12,7 +12,7 @@ digraph
     n2[label="ExpressionTransform_2"];
     n3[label="CountingTransform_3"];
     n4[label="PlanSquashingTransform_4"];
-    n5[label="DeduplicationToken::AddTokenInfoTransform_5"];
+    n5[label="Deduplication::AddTokenInfoTransform_5"];
     n6[label="ApplySquashingTransform_11"];
     n7[label="ConvertingTransform_6"];
     n8[label="NestedElementsValidationTransform_7"];
@@ -46,7 +46,7 @@ digraph
     n2[label="ExpressionTransform_2"];
     n3[label="CountingTransform_3"];
     n4[label="PlanSquashingTransform_4"];
-    n5[label="DeduplicationToken::AddTokenInfoTransform_5"];
+    n5[label="Deduplication::AddTokenInfoTransform_5"];
     n6[label="ApplySquashingTransform_10"];
     n7[label="ConvertingTransform_6"];
     n8[label="NestedElementsValidationTransform_7"];
@@ -78,7 +78,7 @@ digraph
     n2[label="ExpressionTransform_2"];
     n3[label="CountingTransform_3"];
     n4[label="PlanSquashingTransform_4"];
-    n5[label="DeduplicationToken::AddTokenInfoTransform_5"];
+    n5[label="Deduplication::AddTokenInfoTransform_5"];
     n6[label="ApplySquashingTransform_21"];
     n7[label="ConvertingTransform_6"];
     n8[label="NestedElementsValidationTransform_7"];
@@ -133,7 +133,7 @@ digraph
     n2[label="ExpressionTransform_2"];
     n3[label="CountingTransform_3"];
     n4[label="PlanSquashingTransform_4"];
-    n5[label="DeduplicationToken::AddTokenInfoTransform_5"];
+    n5[label="Deduplication::AddTokenInfoTransform_5"];
     n6[label="ApplySquashingTransform_21"];
     n7[label="ConvertingTransform_6"];
     n8[label="NestedElementsValidationTransform_7"];

@@ -479,9 +479,9 @@ PartMovesBetweenShardsOrchestrator::Entry PartMovesBetweenShardsOrchestrator::st
 
             ReplicatedMergeTreeLogEntryData log_entry;
 
-            if (block_number_lock)
+            if (block_number_lock.isLocked())
             {
-                auto block_number = block_number_lock->getNumber();
+                auto block_number = block_number_lock.getNumber();
 
                 auto part_info = part->info;
                 part_info.min_block = block_number;
