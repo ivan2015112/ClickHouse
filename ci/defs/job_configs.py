@@ -384,6 +384,13 @@ class JobConfigs:
             requires=[ArtifactNames.CH_AMD_ASAN],
         ),
     )
+    stateless_tests_targeted_pr_jobs = common_ft_job_config.parametrize(
+        Job.ParamSet(
+            parameter="arm_asan, targeted",
+            runs_on=RunnerLabels.ARM_MEDIUM,
+            requires=[ArtifactNames.CH_ARM_ASAN],
+        ),
+    )
     bugfix_validation_ft_pr_job = Job.Config(
         name=JobNames.BUGFIX_VALIDATE_FT,
         runs_on=RunnerLabels.FUNC_TESTER_ARM,

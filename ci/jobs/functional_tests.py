@@ -7,11 +7,38 @@ from pathlib import Path
 
 from ci.jobs.scripts.clickhouse_proc import ClickHouseProc
 from ci.jobs.scripts.functional_tests_results import FTResultsProcessor
+from ci.praktika.cidb import CIDB
 from ci.praktika.info import Info
 from ci.praktika.result import Result
 from ci.praktika.utils import MetaClasses, Shell, Utils
 
 temp_dir = f"{Utils.cwd()}/ci/tmp"
+
+# Query to fetch failed tests from CIDB for a given PR.
+# Only returns tests from commit_sha/check_name combinations that have less than 10 failures.
+# This helps filter out commits with widespread test failures
+FAILED_TESTS_QUERY = """\
+select test_name, commit_sha, check_name
+from checks
+where 1
+    and check_name LIKE 'Stateless%'
+    and pull_request_number = {PR_NUMBER}
+    and check_status = 'failure'
+    and match(test_name, '^[0-9]{{5}}_')
+    and test_status = 'FAIL'
+    and (commit_sha, check_name) IN (
+        select commit_sha, check_name
+        from checks
+        where 1
+            and check_name LIKE 'Stateless%'
+            and pull_request_number = {PR_NUMBER}
+            and check_status = 'failure'
+            and match(test_name, '^[0-9]{{5}}_')
+            and test_status = 'FAIL'
+        group by commit_sha, check_name
+        having count(test_name) < 10
+    )
+"""
 
 
 class JobStages(metaclass=MetaClasses.WithIter):
@@ -130,6 +157,7 @@ def main():
     batch_num, total_batches = 0, 0
     config_installs_args = ""
     is_flaky_check = False
+    is_targeted_check = False
     is_bugfix_validation = False
     is_s3_storage = False
     is_azure_storage = False
@@ -148,7 +176,7 @@ def main():
         elif to in OPTIONS_TO_INSTALL_ARGUMENTS:
             print(f"NOTE: Enabled config option [{OPTIONS_TO_INSTALL_ARGUMENTS[to]}]")
             config_installs_args += f" {OPTIONS_TO_INSTALL_ARGUMENTS[to]}"
-        elif to.startswith("amd_") or to.startswith("arm_") or "flaky" in to:
+        elif to.startswith("amd_") or to.startswith("arm_") or "flaky" in to or "targeted" in to:
             pass
         elif to in OPTIONS_TO_TEST_RUNNER_ARGUMENTS:
             print(
@@ -160,7 +188,9 @@ def main():
         if to in OPTIONS_TO_TEST_RUNNER_ARGUMENTS:
             runner_options += f" {OPTIONS_TO_TEST_RUNNER_ARGUMENTS[to]}"
 
-        if "flaky" in to:
+        if "targeted" in to:
+            is_targeted_check = True
+        elif "flaky" in to:
             is_flaky_check = True
         elif "BugfixValidation" in to:
             is_bugfix_validation = True
@@ -224,6 +254,29 @@ def main():
             # early exit
             Result.create_from(
                 status=Result.Status.SKIPPED, info="No tests to run"
+            ).complete_job()
+
+    if is_targeted_check:
+        from ci.praktika.settings import Settings
+
+        cidb = CIDB(url=Settings.CI_DB_READ_URL, user="play", passwd="")
+        query = FAILED_TESTS_QUERY.format(PR_NUMBER=info.pr_number)
+        query_result = cidb.query(query, log_level="")
+        # Parse test names from the query result
+        tests = []
+        for line in query_result.strip().split("\n"):
+            if line.strip():
+                # Split by whitespace and get the first column (test_name)
+                parts = line.split()
+                if parts:
+                    test_name = parts[0]
+                    tests.append(test_name)
+        print(f"Parsed {len(tests)} test names: {tests}")
+        if not tests:
+            # early exit
+            Result.create_from(
+                status=Result.Status.SKIPPED,
+                info="No failed tests found from previous runs",
             ).complete_job()
 
     stage = args.param or JobStages.INSTALL_CLICKHOUSE
@@ -355,7 +408,7 @@ def main():
         stop_watch_ = Utils.Stopwatch()
         step_name = "Tests"
         print(step_name)
-        if not is_flaky_check and not is_bugfix_validation:
+        if not is_flaky_check and not is_bugfix_validation and not is_targeted_check:
             run_tests(
                 batch_num=batch_num,
                 batch_total=total_batches,
@@ -364,7 +417,9 @@ def main():
             )
         else:
             run_specific_tests(
-                tests=tests, runs=50 if is_flaky_check else 1, extra_args=runner_options
+                tests=tests,
+                runs=50 if is_flaky_check else 5 if is_targeted_check else 1,
+                extra_args=runner_options,
             )
 
         if not info.is_local_run:

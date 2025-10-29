@@ -5,6 +5,8 @@ from ci.defs.job_configs import JobConfigs
 from ci.jobs.scripts.workflow_hooks.filter_job import should_skip_job
 from ci.jobs.scripts.workflow_hooks.trusted import can_be_trusted
 
+ALL_FUNCTIONAL_TESTS = [job.name for job in JobConfigs.functional_tests_jobs]
+
 FUNCTIONAL_TESTS_PARALLEL_BLOCKING_JOB_NAMES = [
     job.name
     for job in JobConfigs.functional_tests_jobs
@@ -61,6 +63,9 @@ workflow = Workflow.Config(
         JobConfigs.bugfix_validation_it_job,
         JobConfigs.bugfix_validation_ft_pr_job,
         *JobConfigs.stateless_tests_flaky_pr_jobs,
+        JobConfigs.stateless_tests_targeted_pr_jobs[0].set_dependency(
+            FUNCTIONAL_TESTS_PARALLEL_BLOCKING_JOB_NAMES
+        ),
         *[
             job.set_dependency(FUNCTIONAL_TESTS_PARALLEL_BLOCKING_JOB_NAMES)
             for job in JobConfigs.integration_test_jobs_required[:]
